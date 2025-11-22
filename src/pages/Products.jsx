@@ -138,7 +138,6 @@ export default function Products() {
                 isDark ? "text-slate-300" : "text-slate-500"
               }`}
             >
-              Kelola semua produk yang tampil di toko kamu di sini.
             </p>
           </div>
 
