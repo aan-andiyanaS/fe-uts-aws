@@ -3,6 +3,9 @@ import { useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "../services/api";
 import { getToken } from "../services/auth";
 
+// Ambil SweetAlert2 dari global (CDN)
+const Swal = window.Swal;
+
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [searchParams] = useSearchParams();
@@ -35,10 +38,48 @@ export default function Products() {
   }, []);
 
   // ------------------------------------------------
-  // Delete produk
+  // Delete produk (pakai SweetAlert2)
   // ------------------------------------------------
   async function deleteProduct(id) {
-    if (!confirm("Yakin hapus produk ini?")) return;
+    if (!token) {
+      if (Swal) {
+        await Swal.fire({
+          icon: "error",
+          title: "Akses ditolak",
+          text: "Kamu harus login sebagai admin dulu.",
+          background: "#020617",
+          color: "#fee2e2",
+          confirmButtonColor: "#ef4444",
+        });
+      } else {
+        alert("Harus login sebagai admin.");
+      }
+      return;
+    }
+
+    // konfirmasi dulu
+    let result;
+    if (Swal) {
+      result = await Swal.fire({
+        title: "Hapus produk ini?",
+        text: "Tindakan ini tidak bisa dibatalkan.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, hapus",
+        cancelButtonText: "Batal",
+        reverseButtons: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#6b7280",
+        background: "#020617",
+        color: "#e5e7eb",
+        backdrop: "rgba(15,23,42,0.85)",
+      });
+
+      if (!result.isConfirmed) return;
+    } else {
+      const ok = window.confirm("Yakin hapus produk ini?");
+      if (!ok) return;
+    }
 
     const res = await fetch(`${API_BASE_URL}/products/${id}`, {
       method: "DELETE",
@@ -48,15 +89,39 @@ export default function Products() {
     });
 
     const data = await res.json();
-    alert(data.msg);
 
-    const reload = async () => {
-      const res = await fetch(`${API_BASE_URL}/products`);
-      const data = await res.json();
-      setProducts(data);
-    };
+    if (!res.ok) {
+      if (Swal) {
+        await Swal.fire({
+          icon: "error",
+          title: "Gagal menghapus",
+          text: data.msg || "Terjadi kesalahan saat menghapus produk.",
+          background: "#020617",
+          color: "#fee2e2",
+          confirmButtonColor: "#ef4444",
+        });
+      } else {
+        alert(data.msg || "Gagal menghapus produk.");
+      }
+      return;
+    }
 
-    reload();
+    // update list di UI tanpa fetch ulang
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+
+    if (Swal) {
+      await Swal.fire({
+        icon: "success",
+        title: "Terhapus",
+        text: data.msg || "Produk berhasil dihapus dari katalog.",
+        timer: 1700,
+        showConfirmButton: false,
+        background: "#022c22",
+        color: "#ecfdf5",
+      });
+    } else {
+      alert(data.msg || "Produk dihapus.");
+    }
   }
 
   // ------------------------------------------------
@@ -81,12 +146,25 @@ export default function Products() {
   const toggleTheme = () => setIsDark((prev) => !prev);
 
   const handleAddToCart = (product, qty) => {
-    alert(
-      `Produk "${product.title}" x${qty} ditambahkan ke keranjang. (masih dummy)`
-    );
-  };
+    const text = `Produk "${product.title}" x${qty} dimasukkan ke keranjang. (masih dummy)`;
 
-  // ❌ handleBuyNow DIHAPUS, sudah tidak dipakai
+    if (Swal) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Ditambahkan",
+        text,
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+        background: "#022c22",
+        color: "#ecfdf5",
+      });
+    } else {
+      alert(text);
+    }
+  };
 
   const closeModal = () => {
     setSelectedProduct(null);
@@ -137,8 +215,7 @@ export default function Products() {
               className={`mt-1 text-sm ${
                 isDark ? "text-slate-300" : "text-slate-500"
               }`}
-            >
-            </p>
+            ></p>
           </div>
 
           <div className="flex items-center gap-3 self-start md:self-auto">
@@ -203,7 +280,7 @@ export default function Products() {
                   : "border-slate-200 bg-white"
               }`}
             >
-              {/* gambar (klik untuk detail) - SEKARANG DI ATAS */}
+              {/* gambar (klik untuk detail) */}
               {p.image_url && (
                 <div
                   onClick={() => {
@@ -229,7 +306,7 @@ export default function Products() {
                 </div>
               )}
 
-              {/* header card (judul, caption, harga) DI BAWAH GAMBAR */}
+              {/* header card */}
               <div className="flex items-start justify-between p-4">
                 <div className="space-y-1">
                   <h2
@@ -482,7 +559,7 @@ export default function Products() {
                         + Keranjang
                       </button>
 
-                      {/* Tombol Beli Langsung: DINONAKTIFKAN */}
+                      {/* Tombol Beli Langsung: dinonaktifkan */}
                       <button
                         type="button"
                         disabled
