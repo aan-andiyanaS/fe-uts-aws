@@ -17,7 +17,7 @@ export default function Navbar() {
             style={{ textShadow: `0 0 5px rgba(129, 140, 248, 0.6)` }}
           >
             <img 
-              src="public/logo.png" 
+              src="/logo.png" 
               alt="ToHe Logo" 
               className="h-8 w-8 object-contain filter invert hue-rotate-180" 
             />
