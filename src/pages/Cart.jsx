@@ -228,7 +228,7 @@ export default function Cart() {
                 type="button"
                 className="mt-2 w-full rounded-xl bg-gradient-to-r from-indigo-500 via-blue-500 to-sky-500 py-2.5 text-sm font-semibold text-white shadow-[0_14px_45px_rgba(56,189,248,0.45)] hover:shadow-[0_18px_60px_rgba(56,189,248,0.65)] hover:-translate-y-[1px] transition"
               >
-                Lanjut ke Checkout (dummy)
+                Lanjut ke Checkout
               </button>
 
               <p className="text-[11px] text-slate-500">
