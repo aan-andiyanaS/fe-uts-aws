@@ -10,7 +10,7 @@ export default function Navbar() {
   // dropdown akun
   const [open, setOpen] = useState(false);
 
-  // decode token buat ambil nama & email (sesuaikan dengan payload JWT-mu)
+  // ====== DECODE JWT & AMBIL NAMA + EMAIL ======
   let payload = null;
   try {
     payload = token ? JSON.parse(atob(token.split(".")[1])) : null;
@@ -18,15 +18,24 @@ export default function Navbar() {
     payload = null;
   }
 
+  // coba berbagai kemungkinan field dari backend
   const name =
-    payload?.name ||
-    payload?.username ||
-    payload?.user?.name ||
+    payload?.name ??
+    payload?.username ??
+    payload?.fullName ??
+    payload?.fullname ??
+    payload?.nama ??
+    payload?.user?.name ??
+    payload?.user?.username ??
     "Pengguna";
+
   const email =
-    payload?.email ||
-    payload?.user?.email ||
+    payload?.email ??
+    payload?.user?.email ??
+    payload?.userEmail ??
+    payload?.mail ??
     "user@example.com";
+
   const initial = name?.[0]?.toUpperCase() || "U";
 
   // Ambil nilai "q" langsung dari URL saat inisialisasi state
@@ -103,10 +112,9 @@ export default function Navbar() {
 
           {/* Kanan */}
           <div className="flex items-center space-x-3 sm:space-x-4">
-            {/* Belum login: tombol Login & Join ToHe */}
+            {/* Belum login */}
             {!token && (
               <div className="flex items-center gap-2 sm:gap-3">
-                {/* Login: secondary, glassy */}
                 <a
                   href="/login"
                   className={`
@@ -126,7 +134,6 @@ export default function Navbar() {
                   Login
                 </a>
 
-                {/* Join ToHe: primary, gradient glow */}
                 <a
                   href="/register"
                   className={`
@@ -147,13 +154,13 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Sudah login: IKON KERANJANG + avatar + dropdown akun */}
+            {/* Sudah login: ikon keranjang + avatar akun */}
             {token && (
               <>
-                {/* Ikon keranjang di kiri akun */}
+                {/* IKON KERANJANG */}
                 <button
                   type="button"
-                  onClick={() => navigate("/cart")} // nanti tinggal bikin halaman /cart
+                  onClick={() => navigate("/cart")}
                   className="relative flex items-center justify-center h-9 w-9 rounded-full border border-slate-600 bg-slate-900 text-slate-200 hover:border-indigo-400 hover:text-indigo-300 hover:bg-slate-800 transition"
                 >
                   <svg
@@ -172,8 +179,8 @@ export default function Navbar() {
                   </svg>
                 </button>
 
+                {/* AVATAR + DROPDOWN */}
                 <div className="relative">
-                  {/* Tombol avatar */}
                   <button
                     type="button"
                     onClick={() => setOpen((prev) => !prev)}
@@ -192,7 +199,6 @@ export default function Navbar() {
                     </div>
                   </button>
 
-                  {/* Dropdown */}
                   {open && (
                     <div className="absolute right-0 mt-2 w-64 rounded-xl bg-white text-gray-900 shadow-xl border border-gray-100 z-50">
                       {/* header akun */}
@@ -229,7 +235,6 @@ export default function Navbar() {
                         </li>
                       </ul>
 
-                      {/* Logout */}
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center justify-between px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 border-t border-gray-100"
