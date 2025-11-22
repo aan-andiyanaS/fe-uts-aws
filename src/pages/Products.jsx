@@ -1,10 +1,12 @@
+// src/pages/Products.jsx
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "../services/api";
 import { getToken } from "../services/auth";
+import { addToCart } from "../services/cart";
 
-// Ambil SweetAlert2 dari global (CDN)
-const Swal = window.Swal;
+// Ambil SweetAlert2 dari CDN (kalau ada)
+const Swal = window.Swal || null;
 
 export default function Products() {
   const [products, setProducts] = useState([]);
@@ -25,102 +27,93 @@ export default function Products() {
   const q = (searchParams.get("q") || "").toLowerCase();
 
   // ------------------------------------------------
+  // helper reload produk
+  // ------------------------------------------------
+  const reloadProducts = async () => {
+    const res = await fetch(`${API_BASE_URL}/products`);
+    const data = await res.json();
+    setProducts(data);
+  };
+
+  // ------------------------------------------------
   // Load produk
   // ------------------------------------------------
   useEffect(() => {
-    const load = async () => {
-      const res = await fetch(`${API_BASE_URL}/products`);
-      const data = await res.json();
-      setProducts(data);
-    };
-
-    load();
+    reloadProducts();
   }, []);
 
   // ------------------------------------------------
   // Delete produk (pakai SweetAlert2)
   // ------------------------------------------------
   async function deleteProduct(id) {
-    if (!token) {
-      if (Swal) {
-        await Swal.fire({
-          icon: "error",
-          title: "Akses ditolak",
-          text: "Kamu harus login sebagai admin dulu.",
-          background: "#020617",
-          color: "#fee2e2",
-          confirmButtonColor: "#ef4444",
-        });
-      } else {
-        alert("Harus login sebagai admin.");
-      }
+    // fallback jelek kalau Swal tidak tersedia
+    if (!Swal) {
+      if (!window.confirm("Yakin hapus produk ini?")) return;
+
+      const res = await fetch(`${API_BASE_URL}/products/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      alert(data.msg);
+      reloadProducts();
       return;
     }
 
-    // konfirmasi dulu
-    let result;
-    if (Swal) {
-      result = await Swal.fire({
-        title: "Hapus produk ini?",
-        text: "Tindakan ini tidak bisa dibatalkan.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Ya, hapus",
-        cancelButtonText: "Batal",
-        reverseButtons: true,
-        confirmButtonColor: "#ef4444",
-        cancelButtonColor: "#6b7280",
-        background: "#020617",
-        color: "#e5e7eb",
-        backdrop: "rgba(15,23,42,0.85)",
-      });
-
-      if (!result.isConfirmed) return;
-    } else {
-      const ok = window.confirm("Yakin hapus produk ini?");
-      if (!ok) return;
-    }
-
-    const res = await fetch(`${API_BASE_URL}/products/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const result = await Swal.fire({
+      title: "Hapus produk ini?",
+      text: "Tindakan ini tidak bisa dibatalkan.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, hapus",
+      cancelButtonText: "Batal",
+      reverseButtons: true,
+      background: isDark ? "#020617" : "#ffffff",
+      color: isDark ? "#e5e7eb" : "#111827",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      customClass: {
+        popup: "rounded-2xl",
       },
     });
 
-    const data = await res.json();
+    if (!result.isConfirmed) return;
 
-    if (!res.ok) {
-      if (Swal) {
-        await Swal.fire({
-          icon: "error",
-          title: "Gagal menghapus",
-          text: data.msg || "Terjadi kesalahan saat menghapus produk.",
-          background: "#020617",
-          color: "#fee2e2",
-          confirmButtonColor: "#ef4444",
-        });
-      } else {
-        alert(data.msg || "Gagal menghapus produk.");
+    try {
+      const res = await fetch(`${API_BASE_URL}/products/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.msg || "Gagal menghapus produk.");
       }
-      return;
-    }
 
-    // update list di UI tanpa fetch ulang
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-
-    if (Swal) {
       await Swal.fire({
         icon: "success",
         title: "Terhapus",
-        text: data.msg || "Produk berhasil dihapus dari katalog.",
-        timer: 1700,
+        text: data.msg || "Produk berhasil dihapus.",
+        timer: 1500,
         showConfirmButton: false,
-        background: "#022c22",
-        color: "#ecfdf5",
+        background: isDark ? "#020617" : "#ffffff",
+        color: isDark ? "#e5e7eb" : "#111827",
       });
-    } else {
-      alert(data.msg || "Produk dihapus.");
+
+      reloadProducts();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Gagal",
+        text: err.message || "Terjadi kesalahan saat menghapus produk.",
+        background: isDark ? "#020617" : "#ffffff",
+        color: isDark ? "#e5e7eb" : "#111827",
+      });
     }
   }
 
@@ -145,24 +138,26 @@ export default function Products() {
 
   const toggleTheme = () => setIsDark((prev) => !prev);
 
+  // ------------------------------------------------
+  // Tambah ke keranjang beneran
+  // ------------------------------------------------
   const handleAddToCart = (product, qty) => {
-    const text = `Produk "${product.title}" x${qty} dimasukkan ke keranjang. (masih dummy)`;
+    const quantity = Math.max(1, Number(qty) || 1);
+    addToCart(product, quantity);
 
     if (Swal) {
       Swal.fire({
-        toast: true,
-        position: "top-end",
         icon: "success",
         title: "Ditambahkan",
-        text,
+        text: `Produk "${product.title}" x${quantity} masuk ke keranjang.`,
+        timer: 1500,
         showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true,
-        background: "#022c22",
-        color: "#ecfdf5",
+        position: "center",
+        background: isDark ? "#020617" : "#ffffff",
+        color: isDark ? "#e5e7eb" : "#111827",
       });
     } else {
-      alert(text);
+      alert(`Produk "${product.title}" x${quantity} ditambahkan ke keranjang.`);
     }
   };
 
@@ -215,7 +210,8 @@ export default function Products() {
               className={`mt-1 text-sm ${
                 isDark ? "text-slate-300" : "text-slate-500"
               }`}
-            ></p>
+            >
+            </p>
           </div>
 
           <div className="flex items-center gap-3 self-start md:self-auto">
@@ -372,7 +368,7 @@ export default function Products() {
           ))}
         </div>
 
-        {/* Modal detail produk */}
+        {/* Modal detail produk + keranjang */}
         {selectedProduct && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
@@ -501,7 +497,7 @@ export default function Products() {
                     }`}
                   >
                     <h3 className="text-sm font-semibold mb-1">
-                      Atur jumlah dan catatan
+                      Atur jumlah dan masukkan ke keranjang
                     </h3>
 
                     {/* jumlah */}
@@ -559,7 +555,7 @@ export default function Products() {
                         + Keranjang
                       </button>
 
-                      {/* Tombol Beli Langsung: dinonaktifkan */}
+                      {/* Tombol Beli Langsung: sengaja non-aktif */}
                       <button
                         type="button"
                         disabled

@@ -5,6 +5,7 @@ import Products from "./pages/Products";
 import AddProduct from "./pages/AddProduct";
 import Navbar from "./components/Navbar";
 import EditProduct from "./pages/EditProduct";
+import Cart from "./pages/Cart";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/add" element={<AddProduct />} />
         <Route path="/edit/:id" element={<EditProduct />} />
+        <Route path="/cart" element={<Cart />} />
       </Routes>
     </BrowserRouter>
   );
