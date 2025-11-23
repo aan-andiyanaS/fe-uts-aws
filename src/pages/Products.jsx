@@ -24,12 +24,21 @@ export default function Products() {
   // produk yang sedang dibuka di modal
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const [currentImageIdx, setCurrentImageIdx] = useState(0);
 
   const token = getToken();
   const isAdmin = isAdminUser();
   const toggleTheme = () => setIsDark((prev) => !prev);
   const getPrimaryImage = (item) =>
     (item?.images && item.images[0]) || item?.image_url || "";
+  const getImages = (item) => {
+    if (!item) return [];
+    const imgs = Array.isArray(item.images)
+      ? item.images.filter(Boolean)
+      : [];
+    if (imgs.length) return imgs;
+    return item.image_url ? [item.image_url] : [];
+  };
 
   const q = (searchParams.get("q") || "").toLowerCase();
 
@@ -55,6 +64,11 @@ export default function Products() {
   useEffect(() => {
     reloadProducts();
   }, []);
+
+  // Reset index ketika buka produk baru
+  useEffect(() => {
+    setCurrentImageIdx(0);
+  }, [selectedProduct]);
 
   // ------------------------------------------------
   // Delete produk (pakai SweetAlert2)
@@ -189,6 +203,26 @@ export default function Products() {
   const closeModal = () => {
     setSelectedProduct(null);
     setQuantity(1);
+  };
+
+  const images = selectedProduct ? getImages(selectedProduct) : [];
+  const hasImages = images.length > 0;
+  const safeImageIdx = hasImages
+    ? ((currentImageIdx % images.length) + images.length) % images.length
+    : 0;
+  const currentImage =
+    (hasImages ? images[safeImageIdx] : getPrimaryImage(selectedProduct)) || "";
+
+  const goPrevImage = (e) => {
+    e?.stopPropagation();
+    if (images.length < 2) return;
+    setCurrentImageIdx((idx) => (idx - 1 + images.length) % images.length);
+  };
+
+  const goNextImage = (e) => {
+    e?.stopPropagation();
+    if (images.length < 2) return;
+    setCurrentImageIdx((idx) => (idx + 1) % images.length);
   };
 
   return (
@@ -440,16 +474,45 @@ export default function Products() {
                 {/* kiri: gambar besar */}
                 <div className="lg:col-span-5">
                   <div
-                    className={`rounded-2xl overflow-hidden ${
+                    className={`relative rounded-2xl overflow-hidden ${
                       isDark ? "bg-slate-900" : "bg-slate-100"
                     }`}
                   >
-                    {getPrimaryImage(selectedProduct) && (
+                    {currentImage && (
                       <img
-                        src={getPrimaryImage(selectedProduct)}
+                        src={currentImage}
                         alt={selectedProduct.title}
                         className="w-full h-full object-contain max-h-[420px] bg-black/5"
                       />
+                    )}
+
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          onClick={goPrevImage}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 text-white h-10 w-10 flex items-center justify-center backdrop-blur hover:bg-black/60"
+                          aria-label="Gambar sebelumnya"
+                        >
+                          {"<"}
+                        </button>
+                        <button
+                          onClick={goNextImage}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 text-white h-10 w-10 flex items-center justify-center backdrop-blur hover:bg-black/60"
+                          aria-label="Gambar berikutnya"
+                        >
+                          {">"}
+                        </button>
+
+                        <div
+                          className={`absolute bottom-3 right-3 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            isDark
+                              ? "bg-black/60 text-slate-100"
+                              : "bg-white/80 text-slate-800"
+                          }`}
+                        >
+                          {safeImageIdx + 1} / {images.length}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

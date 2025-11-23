@@ -4,6 +4,7 @@ import Register from "./pages/Register";
 import Products from "./pages/Products";
 import AddProduct from "./pages/AddProduct";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import EditProduct from "./pages/EditProduct";
 import Cart from "./pages/Cart";
 import Account from "./pages/Account";
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/account" element={<Account />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   );
 }
