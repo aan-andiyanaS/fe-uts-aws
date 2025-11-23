@@ -1,22 +1,42 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { API_BASE_URL } from "../services/api";
-import { getToken } from "../services/auth";
+import { getToken, isAdmin as isAdminUser } from "../services/auth";
 import { useParams, useNavigate } from "react-router-dom";
+
+const normalizeImages = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    } catch {
+      // fallback to single url string
+    }
+    return value.trim() ? [value] : [];
+  }
+  return [];
+};
 
 export default function EditProduct() {
   const { id } = useParams();
   const navigate = useNavigate();
   const token = getToken();
+  const isAdmin = isAdminUser();
 
   const [product, setProduct] = useState({
     title: "",
     caption: "",
     price: "",
-    image_url: "",
-    image: null, // file baru (opsional)
+    images: [], // array of existing image URLs
   });
 
-  const [preview, setPreview] = useState(""); // buat preview gambar
+  const [newImages, setNewImages] = useState([]); // file baru (opsional)
+  const newPreviews = useMemo(
+    () => newImages.map((file) => URL.createObjectURL(file)),
+    [newImages]
+  );
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -33,10 +53,36 @@ export default function EditProduct() {
       open: false,
     }));
 
+  useEffect(() => {
+    return () => {
+      newPreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [newPreviews]);
+
+  useEffect(() => {
+    if (isAdmin) return;
+
+    const message = "Hanya admin yang boleh mengedit produk.";
+    if (window.Swal) {
+      window.Swal
+        .fire({
+          icon: "error",
+          title: "Akses ditolak",
+          text: message,
+        })
+        .then(() => navigate("/", { replace: true }));
+    } else {
+      alert(message);
+      navigate("/", { replace: true });
+    }
+  }, [isAdmin, navigate]);
+
   // ------------------------------------------------
   // Load produk
   // ------------------------------------------------
   useEffect(() => {
+    if (!isAdmin) return;
+
     const loadProduct = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/products`);
@@ -44,14 +90,13 @@ export default function EditProduct() {
 
         const found = data.find((p) => String(p.id) === String(id));
         if (found) {
+          const images = normalizeImages(found.images || found.image_url);
           setProduct({
             title: found.title || "",
             caption: found.caption || "",
             price: found.price || "",
-            image_url: found.image_url || "",
-            image: null,
+            images,
           });
-          setPreview(found.image_url || "");
         } else {
           setNotif({
             open: true,
@@ -74,25 +119,14 @@ export default function EditProduct() {
     };
 
     loadProduct();
-  }, [id]);
+  }, [id, isAdmin]);
 
   // ------------------------------------------------
   // Ganti gambar (opsional)
   // ------------------------------------------------
   const handleFileChange = (e) => {
-    const file = e.target.files?.[0] || null;
-
-    setProduct((prev) => ({
-      ...prev,
-      image: file, // hanya diisi kalau user pilih file
-    }));
-
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-    } else {
-      // kalau user batal pilih file, balik ke gambar lama
-      setPreview(product.image_url);
-    }
+    const files = Array.from(e.target.files || []);
+    setNewImages(files);
   };
 
   // ------------------------------------------------
@@ -101,6 +135,7 @@ export default function EditProduct() {
   async function updateProduct(e) {
     e.preventDefault();
     if (saving) return;
+    if (!isAdmin) return;
 
     setSaving(true);
 
@@ -111,8 +146,10 @@ export default function EditProduct() {
       form.append("price", product.price);
 
       // hanya kirim gambar kalau user benar-benar pilih gambar baru
-      if (product.image) {
-        form.append("image", product.image);
+      if (newImages.length) {
+        newImages.forEach((file) => form.append("images", file));
+      } else {
+        form.append("existingImages", JSON.stringify(product.images || []));
       }
 
       const res = await fetch(`${API_BASE_URL}/products/${id}`, {
@@ -149,6 +186,10 @@ export default function EditProduct() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   return (
@@ -244,41 +285,69 @@ export default function EditProduct() {
               </div>
 
               {/* kanan: gambar */}
-              <div className="lg:col-span-6 space-y-4">
+              <div className="lg:col-span-6 space-y-5">
                 <div>
                   <p className="text-xs font-semibold text-slate-300 mb-2">
-                    Gambar Saat Ini
+                    Gambar Saat Ini ({product.images.length || 0})
                   </p>
-                  <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/70">
-                    {preview ? (
-                      <img
-                        src={preview}
-                        alt={product.title}
-                        className="w-full h-64 object-cover"
-                      />
+                  <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-3">
+                    {product.images.length ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {product.images.map((url, idx) => (
+                          <img
+                            key={`${url}-${idx}`}
+                            src={url}
+                            alt={`${product.title || "Gambar"}-${idx + 1}`}
+                            className="w-full h-32 object-cover rounded-xl border border-slate-800"
+                          />
+                        ))}
+                      </div>
                     ) : (
-                      <div className="h-64 flex items-center justify-center text-slate-500 text-sm">
+                      <div className="h-24 flex items-center justify-center text-slate-500 text-sm">
                         Tidak ada gambar
                       </div>
                     )}
                   </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Jika tidak mengunggah gambar baru, gambar di atas tetap dipakai.
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Ganti Gambar (opsional)
+                    Ganti / Tambah Gambar (opsional, bisa lebih dari satu)
                   </label>
                   <p className="text-[11px] text-slate-400 mb-2">
-                    Kalau tidak memilih file, sistem akan tetap memakai gambar
-                    yang sekarang.
+                    Pilih file baru jika ingin mengganti. Kosongkan jika ingin tetap menggunakan gambar lama.
                   </p>
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={handleFileChange}
                     className="block w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-indigo-500 cursor-pointer"
                   />
                 </div>
+
+                {newPreviews.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-300 mb-2">
+                      Preview Gambar Baru ({newPreviews.length})
+                    </p>
+                    <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        {newPreviews.map((src, idx) => (
+                          <img
+                            key={src}
+                            src={src}
+                            alt={`Preview baru-${idx + 1}`}
+                            className="w-full h-32 object-cover rounded-xl border border-slate-800"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </form>
           )}

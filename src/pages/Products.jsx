@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "../services/api";
-import { getToken } from "../services/auth";
+import { getToken, isAdmin as isAdminUser } from "../services/auth";
 import { addToCart } from "../services/cart";
 
 // Ambil SweetAlert2 dari CDN (kalau ada)
@@ -20,9 +20,9 @@ export default function Products() {
   const [quantity, setQuantity] = useState(1);
 
   const token = getToken();
-  const isAdmin = token
-    ? JSON.parse(atob(token.split(".")[1])).role === "admin"
-    : false;
+  const isAdmin = isAdminUser();
+  const getPrimaryImage = (item) =>
+    (item?.images && item.images[0]) || item?.image_url || "";
 
   const q = (searchParams.get("q") || "").toLowerCase();
 
@@ -277,7 +277,7 @@ export default function Products() {
               }`}
             >
               {/* gambar (klik untuk detail) */}
-              {p.image_url && (
+              {getPrimaryImage(p) && (
                 <div
                   onClick={() => {
                     setSelectedProduct(p);
@@ -288,7 +288,7 @@ export default function Products() {
                   }`}
                 >
                   <img
-                    src={p.image_url}
+                    src={getPrimaryImage(p)}
                     alt={p.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />
@@ -419,9 +419,9 @@ export default function Products() {
                       isDark ? "bg-slate-900" : "bg-slate-100"
                     }`}
                   >
-                    {selectedProduct.image_url && (
+                    {getPrimaryImage(selectedProduct) && (
                       <img
-                        src={selectedProduct.image_url}
+                        src={getPrimaryImage(selectedProduct)}
                         alt={selectedProduct.title}
                         className="w-full h-full object-contain max-h-[420px] bg-black/5"
                       />

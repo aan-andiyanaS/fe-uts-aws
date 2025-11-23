@@ -1,27 +1,52 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../services/api";
-import { getToken } from "../services/auth";
+import { getToken, isAdmin as isAdminUser } from "../services/auth";
 
 // Ambil SweetAlert2 dari CDN global
 const Swal = window.Swal;
 
 export default function AddProduct() {
+  const navigate = useNavigate();
+  const isAdmin = isAdminUser();
+
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
   const [price, setPrice] = useState("");
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState("");
+  const [images, setImages] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0] || null;
-    setImage(file);
+  useEffect(() => {
+    if (isAdmin) return;
 
-    if (file) {
-      setPreview(URL.createObjectURL(file));
+    const message = "Hanya admin yang boleh menambah produk.";
+
+    if (Swal) {
+      Swal.fire({
+        icon: "error",
+        title: "Akses ditolak",
+        text: message,
+      }).then(() => navigate("/", { replace: true }));
     } else {
-      setPreview("");
+      alert(message);
+      navigate("/", { replace: true });
     }
+  }, [isAdmin, navigate]);
+
+  const previews = useMemo(
+    () => images.map((file) => URL.createObjectURL(file)),
+    [images]
+  );
+
+  useEffect(() => {
+    return () => {
+      previews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previews]);
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    setImages(files);
   };
 
   async function saveProduct(e) {
@@ -30,11 +55,11 @@ export default function AddProduct() {
 
     const token = getToken();
 
-    if (!token) {
+    if (!token || !isAdmin) {
       Swal.fire({
         icon: "error",
         title: "Akses ditolak",
-        text: "Anda harus login dulu.",
+        text: "Anda harus login sebagai admin.",
         position: "center",
       });
       return;
@@ -51,7 +76,7 @@ export default function AddProduct() {
       return;
     }
 
-    if (!image) {
+    if (!images.length) {
       Swal.fire({
         icon: "warning",
         title: "Gambar belum dipilih",
@@ -68,7 +93,7 @@ export default function AddProduct() {
       formData.append("title", title);
       formData.append("caption", caption);
       formData.append("price", price);
-      formData.append("image", image);
+      images.forEach((file) => formData.append("images", file));
 
       const res = await fetch(`${API_BASE_URL}/products`, {
         method: "POST",
@@ -106,6 +131,10 @@ export default function AddProduct() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   return (
@@ -196,15 +225,20 @@ export default function AddProduct() {
             <div className="lg:col-span-5 space-y-4">
               <div>
                 <p className="text-xs font-semibold text-slate-300 mb-2">
-                  Preview Gambar
+                  Preview Gambar ({previews.length || 0})
                 </p>
                 <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/70">
-                  {preview ? (
-                    <img
-                      src={preview}
-                      alt={title || "Preview produk"}
-                      className="w-full h-64 object-cover"
-                    />
+                  {previews.length ? (
+                    <div className="grid grid-cols-2 gap-2 p-3">
+                      {previews.map((src, idx) => (
+                        <img
+                          key={src}
+                          src={src}
+                          alt={`${title || "Preview"}-${idx + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-slate-800"
+                        />
+                      ))}
+                    </div>
                   ) : (
                     <div className="h-64 flex items-center justify-center text-slate-500 text-sm">
                       Belum ada gambar dipilih
@@ -215,15 +249,15 @@ export default function AddProduct() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Upload Gambar
+                  Upload Gambar (bisa lebih dari satu)
                 </label>
                 <p className="text-[11px] text-slate-400 mb-2">
-                  Format JPG, PNG, atau WEBP. Disarankan orientasi landscape
-                  agar tampil maksimal di kartu produk.
+                  Format JPG, PNG, atau WEBP. Bisa pilih beberapa file sekaligus.
                 </p>
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleFileChange}
                   className="block w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-indigo-500 cursor-pointer"
                 />
