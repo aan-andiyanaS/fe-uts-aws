@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getToken, logout } from "../services/auth";
+import { getToken, logout, getDecodedToken } from "../services/auth";
 
 export default function Navbar() {
   const token = getToken();
@@ -11,12 +11,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   // ====== DECODE JWT & AMBIL NAMA + EMAIL ======
-  let payload = null;
-  try {
-    payload = token ? JSON.parse(atob(token.split(".")[1])) : null;
-  } catch {
-    payload = null;
-  }
+  const payload = getDecodedToken();
 
   // coba berbagai kemungkinan field dari backend
   const name =
@@ -189,7 +184,7 @@ export default function Navbar() {
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center text-sm font-semibold text-white">
                       {initial}
                     </div>
-                    <div className="hidden md:flex flex-col items-start">
+                    <div className="flex flex-col items-start">
                       <span className="text-xs font-semibold leading-tight text-white">
                         {name}
                       </span>
