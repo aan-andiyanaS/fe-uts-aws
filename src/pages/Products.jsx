@@ -5,12 +5,21 @@ import { API_BASE_URL } from "../services/api";
 import { getToken, isAdmin as isAdminUser } from "../services/auth";
 import { addToCart } from "../services/cart";
 
+const THEME_KEY = "tohe_theme";
+
 // Ambil SweetAlert2 dari CDN (kalau ada)
 const Swal = window.Swal || null;
 
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [searchParams] = useSearchParams();
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === "dark") return true;
+    if (saved === "light") return false;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches || false;
+  });
 
   // produk yang sedang dibuka di modal
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -18,7 +27,7 @@ export default function Products() {
 
   const token = getToken();
   const isAdmin = isAdminUser();
-  const { isDark } = useTheme();
+  const toggleTheme = () => setIsDark((prev) => !prev);
   const getPrimaryImage = (item) =>
     (item?.images && item.images[0]) || item?.image_url || "";
 
@@ -32,6 +41,13 @@ export default function Products() {
     const data = await res.json();
     setProducts(data);
   };
+
+  // Simpan preferensi dan toggle kelas "dark" pada root HTML
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.toggle("dark", isDark);
+    localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
+  }, [isDark]);
 
   // ------------------------------------------------
   // Load produk
