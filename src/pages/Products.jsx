@@ -12,22 +12,13 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [searchParams] = useSearchParams();
 
-  // theme: false = light, true = dark
-  const [isDark, setIsDark] = useState(false);
-
   // produk yang sedang dibuka di modal
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   const token = getToken();
   const isAdmin = isAdminUser();
-  const getImages = (item) => {
-    if (!item) return [];
-    if (item.images && item.images.length) return item.images;
-    if (item.image_url) return [item.image_url];
-    return [];
-  };
+  const { isDark } = useTheme();
   const getPrimaryImage = (item) =>
     (item?.images && item.images[0]) || item?.image_url || "";
 
@@ -48,10 +39,6 @@ export default function Products() {
   useEffect(() => {
     reloadProducts();
   }, []);
-
-  useEffect(() => {
-    setActiveImageIdx(0);
-  }, [selectedProduct]);
 
   // ------------------------------------------------
   // Delete produk (pakai SweetAlert2)
@@ -160,8 +147,6 @@ export default function Products() {
       maximumFractionDigits: 0,
     }).format(value || 0);
 
-  const toggleTheme = () => setIsDark((prev) => !prev);
-
   // ------------------------------------------------
   // Tambah ke keranjang beneran
   // ------------------------------------------------
@@ -188,7 +173,6 @@ export default function Products() {
   const closeModal = () => {
     setSelectedProduct(null);
     setQuantity(1);
-    setActiveImageIdx(0);
   };
 
   return (
@@ -307,7 +291,6 @@ export default function Products() {
                   onClick={() => {
                     setSelectedProduct(p);
                     setQuantity(1);
-                    setActiveImageIdx(0);
                   }}
                   className={`relative aspect-video overflow-hidden cursor-pointer ${
                     isDark ? "bg-slate-900" : "bg-slate-100"
@@ -440,79 +423,19 @@ export default function Products() {
               <div className="grid gap-6 px-6 pb-6 pt-4 lg:grid-cols-12">
                 {/* kiri: gambar besar */}
                 <div className="lg:col-span-5">
-                  {(() => {
-                    const images = getImages(selectedProduct);
-                    const currentImg =
-                      images.length > 0
-                        ? images[activeImageIdx % images.length]
-                        : null;
-
-                    return (
-                      <div
-                        className={`relative rounded-2xl overflow-hidden ${
-                          isDark ? "bg-slate-900" : "bg-slate-100"
-                        }`}
-                      >
-                        {currentImg && (
-                          <img
-                            src={currentImg}
-                            alt={selectedProduct.title}
-                            className="w-full h-full object-contain max-h-[420px] bg-black/5"
-                          />
-                        )}
-
-                        {images.length > 1 && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveImageIdx((idx) =>
-                                  (idx - 1 + images.length) % images.length
-                                );
-                              }}
-                              className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition"
-                              aria-label="Sebelumnya"
-                            >
-                              {"<"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveImageIdx(
-                                  (idx) => (idx + 1) % images.length
-                                );
-                              }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition"
-                              aria-label="Berikutnya"
-                            >
-                              {">"}
-                            </button>
-
-                            <div className="absolute bottom-2 inset-x-0 flex justify-center gap-2">
-                              {images.map((_, i) => (
-                                <button
-                                  key={i}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveImageIdx(i);
-                                  }}
-                                  className={`h-2.5 w-2.5 rounded-full border border-white/70 transition ${
-                                    i === activeImageIdx
-                                      ? "bg-white"
-                                      : "bg-black/40"
-                                  }`}
-                                  aria-label={`Pilih gambar ${i + 1}`}
-                                />
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  <div
+                    className={`rounded-2xl overflow-hidden ${
+                      isDark ? "bg-slate-900" : "bg-slate-100"
+                    }`}
+                  >
+                    {getPrimaryImage(selectedProduct) && (
+                      <img
+                        src={getPrimaryImage(selectedProduct)}
+                        alt={selectedProduct.title}
+                        className="w-full h-full object-contain max-h-[420px] bg-black/5"
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {/* tengah: detail text */}

@@ -6,6 +6,8 @@ import AddProduct from "./pages/AddProduct";
 import Navbar from "./components/Navbar";
 import EditProduct from "./pages/EditProduct";
 import Cart from "./pages/Cart";
+import Account from "./pages/Account";
+// import { ThemeProvider } from "./contexts/ThemeContext";
 
 export default function App() {
   return (
@@ -18,6 +20,7 @@ export default function App() {
         <Route path="/add" element={<AddProduct />} />
         <Route path="/edit/:id" element={<EditProduct />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/account" element={<Account />} />
       </Routes>
     </BrowserRouter>
   );

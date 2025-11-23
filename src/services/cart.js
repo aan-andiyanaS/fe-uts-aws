@@ -1,22 +1,48 @@
 // src/services/cart.js
+import { getDecodedToken } from "./auth";
 
-const CART_KEY = "tohe_cart";
+const BASE_CART_KEY = "tohe_cart";
 
-// Ambil cart dari localStorage
-export function getCart() {
+// Kunci cart per pengguna (fallback ke guest)
+const getCartKey = () => {
+  const payload = getDecodedToken();
+  const userId =
+    payload?.id || payload?.user?.id || payload?.data?.id || payload?.sub;
+  return userId ? `${BASE_CART_KEY}_${userId}` : `${BASE_CART_KEY}_guest`;
+};
+
+const loadCartByKey = (key) => {
   try {
-    const raw = localStorage.getItem(CART_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const data = JSON.parse(raw);
     return Array.isArray(data) ? data : [];
   } catch {
     return [];
   }
+};
+
+// Ambil cart dari localStorage
+export function getCart() {
+  const key = getCartKey();
+  const cart = loadCartByKey(key);
+
+  // fallback: migrasi cart lama (tanpa prefix user)
+  if (cart.length === 0 && key !== BASE_CART_KEY) {
+    const legacy = loadCartByKey(BASE_CART_KEY);
+    if (legacy.length) {
+      saveCart(legacy);
+      localStorage.removeItem(BASE_CART_KEY);
+      return legacy;
+    }
+  }
+
+  return cart;
 }
 
 // Simpan cart ke localStorage
 function saveCart(cart) {
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  localStorage.setItem(getCartKey(), JSON.stringify(cart));
 }
 
 // Tambah produk ke cart (kalau sudah ada, tambahin qty)

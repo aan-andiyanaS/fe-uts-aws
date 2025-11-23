@@ -214,18 +214,11 @@ export default function Navbar() {
                       {/* menu */}
                       <ul className="py-1 text-sm">
                         <li>
-                          <button className="w-full text-left px-4 py-2 hover:bg-gray-50">
-                            Detail Akun
-                          </button>
-                        </li>
-                        <li>
-                          <button className="w-full text-left px-4 py-2 hover:bg-gray-50">
-                            Ubah Nama
-                          </button>
-                        </li>
-                        <li>
-                          <button className="w-full text-left px-4 py-2 hover:bg-gray-50">
-                            Ubah Sandi
+                          <button
+                            className="w-full text-left px-4 py-2 hover:bg-gray-50"
+                            onClick={() => navigate("/account")}
+                          >
+                            Detail Akun & Edit Profil
                           </button>
                         </li>
                       </ul>
