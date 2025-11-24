@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getToken, logout, getDecodedToken } from "../services/auth";
+import {
+  getToken,
+  logout,
+  getDecodedToken,
+  isAdmin as isAdminUser,
+} from "../services/auth";
 
 export default function Navbar() {
   const token = getToken();
@@ -39,6 +44,7 @@ export default function Navbar() {
 
   const primaryColor = "indigo";
   const dropdownRef = useRef(null);
+  const isAdmin = isAdminUser();
 
   useEffect(() => {
     const handler = (event) => {
@@ -167,26 +173,28 @@ export default function Navbar() {
             {token && (
               <>
                 {/* IKON KERANJANG */}
-                <button
-                  type="button"
-                  onClick={() => navigate("/cart")}
-                  className="relative flex items-center justify-center h-9 w-9 rounded-full border border-slate-600 bg-slate-900 text-slate-200 hover:border-indigo-400 hover:text-indigo-300 hover:bg-slate-800 transition"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                {!isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/cart")}
+                    className="relative flex items-center justify-center h-9 w-9 rounded-full border border-slate-600 bg-slate-900 text-slate-200 hover:border-indigo-400 hover:text-indigo-300 hover:bg-slate-800 transition"
                   >
-                    <circle cx="9" cy="20" r="1.3" />
-                    <circle cx="18" cy="20" r="1.3" />
-                    <path d="M3 4h2l2.4 11.2a1 1 0 0 0 .98.8H18a1 1 0 0 0 .97-.76L21 8H7" />
-                  </svg>
-                </button>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="9" cy="20" r="1.3" />
+                      <circle cx="18" cy="20" r="1.3" />
+                      <path d="M3 4h2l2.4 11.2a1 1 0 0 0 .98.8H18a1 1 0 0 0 .97-.76L21 8H7" />
+                    </svg>
+                  </button>
+                )}
 
                 {/* AVATAR + DROPDOWN */}
                 <div className="relative" ref={dropdownRef}>
