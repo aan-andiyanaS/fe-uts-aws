@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getToken, logout, getDecodedToken } from "../services/auth";
 
@@ -38,6 +38,19 @@ export default function Navbar() {
   const [query, setQuery] = useState(params.get("q") || "");
 
   const primaryColor = "indigo";
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (event) => {
+      if (!open) return;
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -46,6 +59,7 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
+    setOpen(false);
     logout();
     window.location.href = "/login";
   };
@@ -175,7 +189,7 @@ export default function Navbar() {
                 </button>
 
                 {/* AVATAR + DROPDOWN */}
-                <div className="relative">
+                <div className="relative" ref={dropdownRef}>
                   <button
                     type="button"
                     onClick={() => setOpen((prev) => !prev)}
@@ -216,7 +230,10 @@ export default function Navbar() {
                         <li>
                           <button
                             className="w-full text-left px-4 py-2 hover:bg-gray-50"
-                            onClick={() => navigate("/account")}
+                            onClick={() => {
+                              setOpen(false);
+                              navigate("/account");
+                            }}
                           >
                             Detail Akun & Edit Profil
                           </button>
