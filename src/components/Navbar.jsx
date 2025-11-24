@@ -44,7 +44,9 @@ export default function Navbar() {
 
   const primaryColor = "indigo";
   const dropdownRef = useRef(null);
+  const mobileSearchRef = useRef(null);
   const isAdmin = isAdminUser();
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
 
   useEffect(() => {
     const handler = (event) => {
@@ -58,10 +60,27 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  useEffect(() => {
+    const handler = (event) => {
+      if (
+        !showSearchPanel ||
+        (mobileSearchRef.current &&
+          mobileSearchRef.current.contains(event.target))
+      ) {
+        return;
+      }
+      setShowSearchPanel(false);
+    };
+
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showSearchPanel]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     const trimmed = query.trim();
     navigate(`/?${trimmed ? `q=${encodeURIComponent(trimmed)}` : ""}`);
+    setShowSearchPanel(false);
   };
 
   const handleLogout = () => {
@@ -75,66 +94,55 @@ export default function Navbar() {
       className={`bg-gray-950 sticky top-0 z-50 border-b border-${primaryColor}-700/50 font-sans`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <a
-            href="/"
-            className={`flex items-center space-x-2 text-2xl font-black text-white tracking-widest uppercase transition duration-300 hover:text-${primaryColor}-400`}
-            style={{ textShadow: `0 0 5px rgba(129, 140, 248, 0.6)` }}
-          >
-            <img
-              src="/logo.png"
-              alt="ToHe Logo"
-              className="h-8 w-8 object-contain filter invert hue-rotate-180"
-            />
-            <span>TOHE</span>
-          </a>
-
-          {/* Search (kalau sudah login) */}
-          {token && (
-            <form
-              onSubmit={handleSearch}
-              className="flex-1 max-w-lg mx-8 transition-opacity duration-300"
+        <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:h-16 sm:py-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Logo */}
+            <a
+              href="/"
+              className={`flex items-center space-x-2 text-2xl font-black text-white tracking-widest uppercase transition duration-300 hover:text-${primaryColor}-400`}
+              style={{ textShadow: `0 0 5px rgba(129, 140, 248, 0.6)` }}
             >
-              <div className="relative">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Cari produk sampah..."
-                  className={`w-full py-2 pl-4 pr-10 text-white bg-gray-800 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-${primaryColor}-500 border border-gray-700 transition duration-300`}
-                />
-                <button
-                  type="submit"
-                  className={`absolute right-0 top-0 h-full w-10 flex items-center justify-center text-gray-400 hover:text-${primaryColor}-400 transition duration-300`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.61l4.57 4.57a1 1 0 01-1.42 1.42l-4.57-4.57A6 6 0 012 8z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </form>
-          )}
+              <img
+                src="/logo.png"
+                alt="ToHe Logo"
+                className="h-8 w-8 object-contain filter invert hue-rotate-180"
+              />
+              <span>TOHE</span>
+            </a>
+          </div>
 
           {/* Kanan */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto flex-wrap sm:flex-nowrap justify-end">
+            {token && (
+              <button
+                type="button"
+                onClick={() => setShowSearchPanel(true)}
+                className={`h-10 w-10 rounded-full border border-slate-700 text-slate-200 flex items-center justify-center hover:text-${primaryColor}-300 hover:border-${primaryColor}-400 transition`}
+                aria-label="Buka pencarian"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.61l4.57 4.57a1 1 0 01-1.42 1.42l-4.57-4.57A6 6 0 012 8z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+
             {/* Belum login */}
             {!token && (
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex flex-col w-full sm:w-auto sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                 <a
                   href="/login"
                   className={`
-                    relative inline-flex items-center justify-center
-                    px-4 py-1.5 rounded-full
+                    relative inline-flex items-center justify-center w-full sm:w-auto
+                    px-4 py-2 rounded-full
                     text-xs sm:text-sm font-semibold
                     border border-slate-600/70
                     bg-slate-900/60 text-slate-100
@@ -152,8 +160,8 @@ export default function Navbar() {
                 <a
                   href="/register"
                   className={`
-                    relative inline-flex items-center justify-center
-                    px-4 sm:px-5 py-1.5 rounded-full
+                    relative inline-flex items-center justify-center w-full sm:w-auto
+                    px-4 sm:px-5 py-2 rounded-full
                     text-xs sm:text-sm font-bold text-white
                     bg-gradient-to-r from-${primaryColor}-500 via-purple-500 to-sky-500
                     shadow-[0_0_22px_rgba(129,140,248,0.85)]
@@ -201,12 +209,13 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => setOpen((prev) => !prev)}
-                    className="inline-flex items-center gap-2 rounded-full bg-gray-900 border border-gray-700 px-2.5 py-1.5 hover:border-indigo-400 transition"
+                    className="flex items-center gap-2 rounded-full bg-gray-900 border border-gray-700 p-1.5 hover:border-indigo-400 transition"
+                    aria-label="Menu akun"
                   >
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center text-sm font-semibold text-white">
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center text-sm font-semibold text-white">
                       {initial}
                     </div>
-                    <div className="flex flex-col items-start">
+                    <div className="hidden sm:flex flex-col items-start pr-2">
                       <span className="text-xs font-semibold leading-tight text-white">
                         {name}
                       </span>
@@ -263,6 +272,49 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {token && showSearchPanel && (
+        <div
+          className="fixed inset-x-0 top-16 z-40 bg-gray-900 border-b border-slate-700/70 px-4 py-3 sm:max-w-2xl sm:left-1/2 sm:-translate-x-1/2 sm:rounded-b-2xl sm:shadow-xl"
+          ref={mobileSearchRef}
+        >
+          <form onSubmit={handleSearch} className="flex items-center gap-2">
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari produk..."
+              className="flex-1 py-2 px-3 rounded-lg bg-gray-800 text-white border border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              type="submit"
+              className="h-10 w-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.61l4.57 4.57a1 1 0 01-1.42 1.42l-4.57-4.57A6 6 0 012 8z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSearchPanel(false)}
+              className="h-10 w-10 rounded-lg border border-slate-600 text-slate-200 flex items-center justify-center"
+              aria-label="Tutup pencarian"
+            >
+              ✕
+            </button>
+          </form>
+        </div>
+      )}
     </nav>
   );
 }
